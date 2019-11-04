@@ -48,13 +48,13 @@ fn main() {
         let y_pos: usize = y.trim().parse().unwrap();
 
         // 石を置く
-        if isBlackTurn {
+        if is_black_turn {
             board[y_pos][x_pos] = 2;
         } else {
             board[y_pos][x_pos] = 1;
         }
 
         println!("\n");
-        isBlackTurn = !isBlackTurn;
+        is_black_turn = !is_black_turn;
     }
 }
