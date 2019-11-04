@@ -12,10 +12,28 @@ fn main() {
     board[4][4] = 1;
 
     loop {
+        // ターンの表示
         if isBlackTurn {
             println!("Turn: Black");
         } else {
             println!("Turn: White");
+        }
+
+        // 盤面の描画(CUI)
+        // println!("{:?}", board);
+        for y in 0..8 {
+            let mut display: String = String::new();
+            for x in 0..8 {
+                if board[y][x] == 1 {
+                    display += "W "
+                } else if board[y][x] == 2 {
+                    display += "B "
+                } else {
+                    display += "# ";
+                }
+            }
+
+            println!("{}", display);
         }
 
         // ユーザーの座標入力
@@ -35,8 +53,6 @@ fn main() {
         } else {
             board[y_pos][x_pos] = 1;
         }
-
-        println!("{:?}", board);
 
         println!("\n");
         isBlackTurn = !isBlackTurn;
