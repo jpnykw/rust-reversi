@@ -47,6 +47,9 @@ fn main() {
         let x_pos: usize = x.trim().parse().unwrap();
         let y_pos: usize = y.trim().parse().unwrap();
 
+        // TODO:
+        // おけるかを確認するロジックの実装
+
         if board[y_pos][x_pos] > 0 {
             println!("You cant put there!");
         } else {
@@ -56,6 +59,9 @@ fn main() {
             } else {
                 board[y_pos][x_pos] = 1;
             }
+
+            // TODO:
+            // おける場合に盤面を更新するロジックの実装
 
             is_black_turn = !is_black_turn;
         }
