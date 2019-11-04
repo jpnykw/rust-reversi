@@ -20,15 +20,16 @@ fn main() {
         }
 
         // 盤面の描画(CUI)
+        println!("  0 1 2 3 4 5 6 7");
         for y in 0..8 {
-            let mut display: String = String::new();
+            let mut display: String = y.to_string();
             for x in 0..8 {
                 if board[y][x] == 1 {
-                    display += "W "
+                    display += " W"
                 } else if board[y][x] == 2 {
-                    display += "B "
+                    display += " B"
                 } else {
-                    display += "# ";
+                    display += " #";
                 }
             }
 
@@ -46,14 +47,19 @@ fn main() {
         let x_pos: usize = x.trim().parse().unwrap();
         let y_pos: usize = y.trim().parse().unwrap();
 
-        // 石を置く
-        if is_black_turn {
-            board[y_pos][x_pos] = 2;
+        if board[y_pos][x_pos] > 0 {
+            println!("You cant put there!");
         } else {
-            board[y_pos][x_pos] = 1;
+            // 石を置く
+            if is_black_turn {
+                board[y_pos][x_pos] = 2;
+            } else {
+                board[y_pos][x_pos] = 1;
+            }
+
+            is_black_turn = !is_black_turn;
         }
 
         println!("\n");
-        is_black_turn = !is_black_turn;
     }
 }
