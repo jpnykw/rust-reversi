@@ -2,7 +2,7 @@ use std::io;
 
 fn main() {
     // ターン制御
-    let mut isBlackTurn = true;
+    let mut is_black_turn = true;
 
     // ゲームの盤面を初期化する
     let mut board: [[i32; 8]; 8] = [[0; 8]; 8];
@@ -13,14 +13,13 @@ fn main() {
 
     loop {
         // ターンの表示
-        if isBlackTurn {
+        if is_black_turn {
             println!("Turn: Black");
         } else {
             println!("Turn: White");
         }
 
         // 盤面の描画(CUI)
-        // println!("{:?}", board);
         for y in 0..8 {
             let mut display: String = String::new();
             for x in 0..8 {
