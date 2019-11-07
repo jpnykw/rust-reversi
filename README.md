@@ -1,15 +1,11 @@
 # Reversi on Rust
 
-1. build  
-Run this command  
-
+## Build
 ```
 cargo build --release
 ```
 
-2. run  
-Open the file  
-
+## Run
 ```
-./target/debug/reversi.exe
+cargo run
 ```
