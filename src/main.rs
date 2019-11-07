@@ -1,4 +1,62 @@
 use std::io;
+extern crate piston;
+extern crate graphics;
+extern crate glutin_window;
+extern crate opengl_graphics;
+
+use piston::window::WindowSettings;
+use piston::event_loop::*;
+use piston::input::*;
+use glutin_window::GlutinWindow as Window;
+use opengl_graphics::{ GlGraphics, OpenGL };
+
+const WINDOW_WIDTH: f64 = 640.0;
+const WINDOW_HEIGHT: f64 = 640.0;
+
+pub struct App {
+    gl: GlGraphics // OpenGL drawing backend.
+}
+
+impl App {
+    fn render(&mut self, args: &RenderArgs) {
+        use graphics::*;
+
+        const COLOR: f32 = 0.14;
+        const BLACK: [f32; 4] = [COLOR, COLOR, COLOR, 1.0];
+
+        let (x, y) = (args.window_size[0] / 2.0,
+                      args.window_size[1] / 2.0);
+
+        self.gl.draw(args.viewport(), |_c, gl| {
+            // Clear the screen.
+            clear(BLACK, gl);
+
+            let transform = _c.transform.trans(x, y);
+
+
+            let size = 40.0;
+            let mut _x = 0.0;
+            let mut _y = size * -4.0 + size;
+
+            let dx = [-size, size, size, size, size, -size, -size, -size];
+            let dy = [size, size, size, -size, -size, -size, -size, size];
+
+            for _i in 0..7 {
+                _x = size * -4.0 + size;
+                for _j in 0..7 {
+                    for _k in 0..4 {
+                        line([0.92, 0.92, 0.92, 1.0], 0.5, [
+                            _x + dx[_k * 2], _y + dy[_k * 2],
+                            _x + dx[_k * 2 + 1], _y + dy[_k * 2 + 1]
+                        ], transform, gl);
+                    }
+                    _x += size;
+                }
+                _y += size;
+            }
+        });
+    }
+}
 
 fn count_stones(_board: [[usize; 8]; 8]) -> [usize; 2] {
     let mut stones: [usize; 2] = [0; 2];
@@ -46,7 +104,7 @@ fn get_reversed_board(_x: usize, _y: usize, _stone: usize, _board: [[usize; 8]; 
                 _x_pos = _x as i32;
                 _y_pos = _y as i32;
 
-                for i in 0..count_max {
+                for _i in 0..count_max {
                     _x_pos += dx[id];
                     _y_pos += dy[id];
                     new_board[_y_pos as usize][_x_pos as usize] = _stone;
@@ -72,6 +130,32 @@ fn main() {
     board[4][3] = 2;
     board[4][4] = 1;
 
+    // Change this to OpenGL::V2_1 if not working.
+    let opengl = OpenGL::V3_2;
+
+    // Create an Glutin window.
+    let mut window: Window = WindowSettings::new(
+            "Reversi v1.0",
+            [WINDOW_WIDTH, WINDOW_HEIGHT]
+        )
+        .graphics_api(opengl)
+        .exit_on_esc(true)
+        .build()
+        .unwrap();
+
+    // Create a new game and run it.
+    let mut app = App {
+        gl: GlGraphics::new(opengl)
+    };
+
+    let mut events = Events::new(EventSettings::new());
+    while let Some(e) = events.next(&mut window) {
+        if let Some(r) = e.render_args() {
+            app.render(&r);
+        }
+    }
+
+    // CUIのオセロ
     loop {
         let stones = count_stones(board);
         println!("\nStones:\n - White: {}\n - Black: {}", stones[0], stones[1]);
