@@ -28,12 +28,12 @@ impl App {
                       args.window_size[1] / 2.0);
 
         self.gl.draw(args.viewport(), |_c, gl| {
-            // Clear the screen.
             clear(BLACK, gl);
 
             let transform = _c.transform.trans(x, y);
 
 
+            // 枠を描画するための設定
             let size = 40.0;
             let mut _x = 0.0;
             let mut _y = size * -4.0 + size;
@@ -41,6 +41,7 @@ impl App {
             let dx = [-size, size, size, size, size, -size, -size, -size];
             let dy = [size, size, size, -size, -size, -size, -size, size];
 
+            // 枠を描画
             for _i in 0..7 {
                 _x = size * -4.0 + size;
                 for _j in 0..7 {
@@ -130,7 +131,6 @@ fn main() {
     board[4][3] = 2;
     board[4][4] = 1;
 
-    // Change this to OpenGL::V2_1 if not working.
     let opengl = OpenGL::V3_2;
 
     // Create an Glutin window.
@@ -143,7 +143,6 @@ fn main() {
         .build()
         .unwrap();
 
-    // Create a new game and run it.
     let mut app = App {
         gl: GlGraphics::new(opengl)
     };
