@@ -1,4 +1,4 @@
 /target
 **/*.rs.bk
-.swp
+*.swp
 .DS_Store
