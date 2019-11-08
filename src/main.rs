@@ -1,4 +1,5 @@
 use std::io;
+use std::f64;
 extern crate piston;
 extern crate graphics;
 extern crate glutin_window;
@@ -10,51 +11,76 @@ use piston::input::*;
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ GlGraphics, OpenGL };
 
+const GRID_SIZE: f64 = 50.0;
 const WINDOW_WIDTH: f64 = 640.0;
 const WINDOW_HEIGHT: f64 = 640.0;
 
 pub struct App {
-    gl: GlGraphics // OpenGL drawing backend.
+    gl: GlGraphics
 }
 
 impl App {
-    fn render(&mut self, args: &RenderArgs) {
+    fn render(&mut self, args: &RenderArgs, _board: [[usize; 8]; 8]) {
         use graphics::*;
 
-        const COLOR: f32 = 0.14;
-        const BLACK: [f32; 4] = [COLOR, COLOR, COLOR, 1.0];
+        const BLACK: [f32; 4] = [0.14, 0.14, 0.14, 1.0];
+        const WHITE: [f32; 4] = [0.85, 0.85, 0.85, 1.0];
+        const GREEN: [f32; 4] = [0.03, 0.51, 0.23, 1.0];
+
+        let square = rectangle::square(
+            -GRID_SIZE * 4.0,
+            -GRID_SIZE * 4.0,
+            GRID_SIZE * 8.0
+        );
+
+        let stone = rectangle::square(0.0, 0.0, 20.0);
 
         let (x, y) = (args.window_size[0] / 2.0,
                       args.window_size[1] / 2.0);
 
         self.gl.draw(args.viewport(), |_c, gl| {
-            clear(BLACK, gl);
+            clear(WHITE, gl);
 
+            // GRID
+            let mut _x = 0.0;
+            let mut _y = GRID_SIZE * -4.0 + GRID_SIZE;
             let transform = _c.transform.trans(x, y);
 
+            let dx = [-GRID_SIZE, GRID_SIZE, GRID_SIZE, GRID_SIZE, GRID_SIZE, -GRID_SIZE, -GRID_SIZE, -GRID_SIZE];
+            let dy = [GRID_SIZE, GRID_SIZE, GRID_SIZE, -GRID_SIZE, -GRID_SIZE, -GRID_SIZE, -GRID_SIZE, GRID_SIZE];
 
-            // 枠を描画するための設定
-            let size = 40.0;
-            let mut _x = 0.0;
-            let mut _y = size * -4.0 + size;
+            rectangle(GREEN, square, transform, gl);
 
-            let dx = [-size, size, size, size, size, -size, -size, -size];
-            let dy = [size, size, size, -size, -size, -size, -size, size];
-
-            // 枠を描画
             for _i in 0..7 {
-                _x = size * -4.0 + size;
+                _x = GRID_SIZE * -4.0 + GRID_SIZE;
                 for _j in 0..7 {
                     for _k in 0..4 {
-                        line([0.92, 0.92, 0.92, 1.0], 0.5, [
+                        line(BLACK, 2.0, [
                             _x + dx[_k * 2], _y + dy[_k * 2],
                             _x + dx[_k * 2 + 1], _y + dy[_k * 2 + 1]
                         ], transform, gl);
+
+                        if _board[_i][_j] > 0 {
+                            let trans = _c.transform.trans(
+                                _x + GRID_SIZE * 6.0 - 15.0,
+                                _y + GRID_SIZE * 6.0 - 15.0
+                            );
+
+                            circle_arc(
+                                // BLACK,
+                                if _board[_i][_j] == 1 { WHITE } else { BLACK },
+                                10.0, 0.0, f64::consts::PI * 1.9999, stone, trans, gl
+                            )
+                        };
                     }
-                    _x += size;
+                    _x += GRID_SIZE;
                 }
-                _y += size;
+                _y += GRID_SIZE;
             }
+
+            // STONES
+            // circle_arc(BLACK, stone, transform, gl);
+            // circle_arc(BLACK, 10.0, 0.0, f64::consts::PI*1.9999, stone, transform, gl);
         });
     }
 }
@@ -148,10 +174,25 @@ fn main() {
     };
 
     let mut events = Events::new(EventSettings::new());
+    let mut cursor = [0.0, 0.0];
+
     while let Some(e) = events.next(&mut window) {
+        // 画面のレンダリング
         if let Some(r) = e.render_args() {
-            app.render(&r);
+            app.render(&r, board);
         }
+        // マウスの任意のボタンを押したときに発火
+        if let Some(Button::Mouse(button)) = e.press_args() {
+            // println!("Pressed mouse button '{:?}'", button); // OK
+            if button == piston::MouseButton::Left {
+                println!("Left Clicked!");
+            }
+        }
+        // マウスの座標取得
+        e.mouse_cursor(|pos| {
+            cursor = pos;
+            // println!("Mouse at  ({} {})", pos[0], pos[1]); // OK
+        });
     }
 
     // CUIのオセロ
