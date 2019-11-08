@@ -167,7 +167,7 @@ fn main() {
 
     let opengl = OpenGL::V3_2;
     let mut window: Window = WindowSettings::new(
-            "Reversi v1.0",
+            "Reversi v1.1",
             [WINDOW_WIDTH, WINDOW_HEIGHT]
         )
         .graphics_api(opengl)
