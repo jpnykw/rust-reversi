@@ -1,8 +1,9 @@
-use std::f64;
 extern crate piston;
 extern crate graphics;
 extern crate glutin_window;
 extern crate opengl_graphics;
+
+use std::f64;
 
 use piston::window::WindowSettings;
 use piston::event_loop::*;
@@ -19,11 +20,12 @@ pub struct App {
 }
 
 impl App {
-    fn render(&mut self, args: &RenderArgs, _board: [[usize; 8]; 8]) {
+    fn render(&mut self, args: &RenderArgs, _board: [[usize; 8]; 8], _positions_can_put: [[usize; 8]; 8]) {
         use graphics::*;
 
-        const BLACK: [f32; 4] = [0.14, 0.14, 0.14, 1.0];
+        const WHITE_SUB: [f32; 4] = [1.0, 1.0, 1.0, 0.1];
         const WHITE: [f32; 4] = [0.85, 0.85, 0.85, 1.0];
+        const BLACK: [f32; 4] = [0.14, 0.14, 0.14, 1.0];
         const GREEN: [f32; 4] = [0.03, 0.51, 0.23, 1.0];
 
         let square = rectangle::square(
@@ -33,9 +35,7 @@ impl App {
         );
 
         let stone = rectangle::square(0.0, 0.0, 20.0);
-
-        let (x, y) = (args.window_size[0] / 2.0,
-                      args.window_size[1] / 2.0);
+        let (x, y) = (args.window_size[0] / 2.0, args.window_size[1] / 2.0);
 
         self.gl.draw(args.viewport(), |_c, gl| {
             clear(WHITE, gl);
@@ -66,20 +66,18 @@ impl App {
             }
 
             // STONES
-            // circle_arc(BLACK, stone, transform, gl);
-            // circle_arc(BLACK, 10.0, 0.0, f64::consts::PI*1.9999, stone, transform, gl);
             _y = GRID_SIZE * -4.0 + GRID_SIZE;
             for _i in 0..8 {
                 _x = GRID_SIZE * -4.0 + GRID_SIZE;
                 for _j in 0..8 {
-                    if _board[_i][_j] > 0 {
+                    if _board[_i][_j] > 0 || _positions_can_put[_i][_j] == 1 {
                         let trans = _c.transform.trans(
                             _x + GRID_SIZE * 6.0 - 15.0,
                             _y + GRID_SIZE * 6.0 - 15.0
                         );
 
                         circle_arc(
-                            if _board[_i][_j] == 1 { WHITE } else { BLACK },
+                            if _positions_can_put[_i][_j] == 1 { WHITE_SUB } else if _board[_i][_j] == 1 { WHITE } else { BLACK },
                             10.0, 0.0, f64::consts::PI * 1.9999, stone, trans, gl
                         );
                     }
@@ -149,13 +147,20 @@ fn get_reversed_board(_x: usize, _y: usize, _stone: usize, _board: [[usize; 8]; 
     return new_board;
 }
 
-fn alert() {
-    println!("\n==================================================");
-    println!("You can't put there.");
-    println!("==================================================");
+fn get_positions_can_put(_stone: usize, _board: [[usize; 8]; 8]) -> [[usize; 8]; 8] {
+    let mut positions: [[usize; 8]; 8] = [[0; 8]; 8];
+    for y in 0..8 {
+        for x in 0..8 {
+            if _board[y][x] == 0 {
+                positions[y][x] = if _board == get_reversed_board(x, y, _stone, _board) { 0 } else { 1 };
+            }
+        }
+    }
+    return positions;
 }
 
 fn main() {
+    let mut skip_count = 0;
     let mut id_x: usize = 0;
     let mut id_y: usize = 0;
     let mut is_black_turn = true;
@@ -184,18 +189,46 @@ fn main() {
 
     while let Some(e) = events.next(&mut window) {
         if let Some(r) = e.render_args() {
-            app.render(&r, board);
+            let positions_can_put = get_positions_can_put(if is_black_turn { 2 } else { 1 }, board);
+            if positions_can_put == [[0; 8]; 8] {
+                is_black_turn = !is_black_turn;
+                if skip_count == 1 {
+                    skip_count = 2;
+                    println!("\nFinished the game!");
+
+                    let result = count_stones(board);
+                    println!("{} - {}, {}!",
+                        result[0],
+                        result[1],
+                        if result[0] == result[1] { "DRAW" } else {
+                            if result[0] > result[1] { "WHITE WON!" }
+                            else { "BLACK WON" }
+                        }
+                    );
+                } else if skip_count == 0 {
+                    skip_count = 1;
+                    println!("Skip {}!", if !is_black_turn { "BLACK" } else { "WHITE" });
+                }
+            } else {
+                skip_count = 0;
+            }
+
+            app.render(&r, board, positions_can_put);
         }
 
         if let Some(Button::Mouse(button)) = e.press_args() {
             if button == piston::MouseButton::Left {
+                if id_x < 0 || id_x > 7 || id_y < 0 || id_y > 7 {
+                    continue;
+                }
+
                 if board[id_y][id_x] > 0 {
-                    alert();
+                    println!("You can't put there.");
                 } else {
                     let stone: usize = if is_black_turn { 2 } else { 1 };
 
                     if board == get_reversed_board(id_x, id_y, stone, board) {
-                        alert();
+                        println!("You can't put there.");
                     } else {
                         board[id_y][id_x] = stone;
                         board = get_reversed_board(id_x, id_y, stone, board);
