@@ -1,4 +1,3 @@
-use std::io;
 use std::f64;
 extern crate piston;
 extern crate graphics;
@@ -49,6 +48,7 @@ impl App {
             let dx = [-GRID_SIZE, GRID_SIZE, GRID_SIZE, GRID_SIZE, GRID_SIZE, -GRID_SIZE, -GRID_SIZE, -GRID_SIZE];
             let dy = [GRID_SIZE, GRID_SIZE, GRID_SIZE, -GRID_SIZE, -GRID_SIZE, -GRID_SIZE, -GRID_SIZE, GRID_SIZE];
 
+            // BACKGROUND
             rectangle(GREEN, square, transform, gl);
 
             for _i in 0..7 {
@@ -59,19 +59,6 @@ impl App {
                             _x + dx[_k * 2], _y + dy[_k * 2],
                             _x + dx[_k * 2 + 1], _y + dy[_k * 2 + 1]
                         ], transform, gl);
-
-                        if _board[_i][_j] > 0 {
-                            let trans = _c.transform.trans(
-                                _x + GRID_SIZE * 6.0 - 15.0,
-                                _y + GRID_SIZE * 6.0 - 15.0
-                            );
-
-                            circle_arc(
-                                // BLACK,
-                                if _board[_i][_j] == 1 { WHITE } else { BLACK },
-                                10.0, 0.0, f64::consts::PI * 1.9999, stone, trans, gl
-                            )
-                        };
                     }
                     _x += GRID_SIZE;
                 }
@@ -81,6 +68,25 @@ impl App {
             // STONES
             // circle_arc(BLACK, stone, transform, gl);
             // circle_arc(BLACK, 10.0, 0.0, f64::consts::PI*1.9999, stone, transform, gl);
+            _y = GRID_SIZE * -4.0 + GRID_SIZE;
+            for _i in 0..8 {
+                _x = GRID_SIZE * -4.0 + GRID_SIZE;
+                for _j in 0..8 {
+                    if _board[_i][_j] > 0 {
+                        let trans = _c.transform.trans(
+                            _x + GRID_SIZE * 6.0 - 15.0,
+                            _y + GRID_SIZE * 6.0 - 15.0
+                        );
+
+                        circle_arc(
+                            if _board[_i][_j] == 1 { WHITE } else { BLACK },
+                            10.0, 0.0, f64::consts::PI * 1.9999, stone, trans, gl
+                        );
+                    }
+                    _x += GRID_SIZE;
+                }
+                _y += GRID_SIZE;
+            }
         });
     }
 }
@@ -119,10 +125,10 @@ fn get_reversed_board(_x: usize, _y: usize, _stone: usize, _board: [[usize; 8]; 
                 _x_pos += dx[id];
                 _y_pos += dy[id];
 
-                if _board[_y_pos as usize][_x_pos as usize] == _stone {
-                    break;
-                } else if _x_pos < 0 || _x_pos > 7 || _y_pos < 0 || _y_pos > 7 || _board[_y_pos as usize][_x_pos as usize] == 0 {
+                if _x_pos < 0 || _x_pos > 7 || _y_pos < 0 || _y_pos > 7 || _board[_y_pos as usize][_x_pos as usize] == 0 {
                     flag = false;
+                    break;
+                } else if _board[_y_pos as usize][_x_pos as usize] == _stone {
                     break;
                 }
             }
@@ -150,6 +156,8 @@ fn alert() {
 }
 
 fn main() {
+    let mut id_x: usize = 0;
+    let mut id_y: usize = 0;
     let mut is_black_turn = true;
     let mut board: [[usize; 8]; 8] = [[0; 8]; 8];
     board[3][3] = 1;
@@ -158,8 +166,6 @@ fn main() {
     board[4][4] = 1;
 
     let opengl = OpenGL::V3_2;
-
-    // Create an Glutin window.
     let mut window: Window = WindowSettings::new(
             "Reversi v1.0",
             [WINDOW_WIDTH, WINDOW_HEIGHT]
@@ -177,62 +183,36 @@ fn main() {
     let mut cursor = [0.0, 0.0];
 
     while let Some(e) = events.next(&mut window) {
-        // 画面のレンダリング
         if let Some(r) = e.render_args() {
             app.render(&r, board);
         }
-        // マウスの任意のボタンを押したときに発火
+
         if let Some(Button::Mouse(button)) = e.press_args() {
-            // println!("Pressed mouse button '{:?}'", button); // OK
             if button == piston::MouseButton::Left {
-                println!("Left Clicked!");
+                if board[id_y][id_x] > 0 {
+                    alert();
+                } else {
+                    let stone: usize = if is_black_turn { 2 } else { 1 };
+
+                    if board == get_reversed_board(id_x, id_y, stone, board) {
+                        alert();
+                    } else {
+                        board[id_y][id_x] = stone;
+                        board = get_reversed_board(id_x, id_y, stone, board);
+                        is_black_turn = !is_black_turn;
+                        println!("{:?}", count_stones(board));
+                    }
+                }
             }
         }
-        // マウスの座標取得
+
         e.mouse_cursor(|pos| {
             cursor = pos;
-            // println!("Mouse at  ({} {})", pos[0], pos[1]); // OK
+            let left_x = WINDOW_WIDTH / 2.0 - GRID_SIZE * 4.0;
+            let top_y = WINDOW_HEIGHT / 2.0 - GRID_SIZE * 4.0;
+            let (normal_x, normal_y) = (pos[0] - left_x, pos[1] - top_y);
+            id_x = (normal_x / GRID_SIZE) as usize;
+            id_y = (normal_y / GRID_SIZE) as usize;
         });
-    }
-
-    // CUIのオセロ
-    loop {
-        let stones = count_stones(board);
-        println!("\nStones:\n - White: {}\n - Black: {}", stones[0], stones[1]);
-        println!("\nTurn: {}", if is_black_turn { "Black" } else { "White" });
-        println!("\n  0 1 2 3 4 5 6 7");
-
-        for y in 0..8 {
-            let mut display: String = y.to_string();
-            for x in 0..8 { display += if board[y][x] == 1 { " W" } else if board[y][x] == 2 { " B" } else { " ." }; }
-            println!("{}", display);
-        }
-
-        let mut x = String::new();
-        let mut y = String::new();
-        println!("\nEnter X pos to put.");
-        io::stdin().read_line(&mut x).expect("Failed to read line.");
-        let x_pos: i32 = x.trim().parse().expect("Please type a number!");
-
-        println!("\nEnter Y pos to put.");
-        io::stdin().read_line(&mut y).expect("Failed to read line.");
-        let y_pos: i32 = y.trim().parse().expect("Please type a number!");
-
-        let x_id: usize = x_pos as usize;
-        let y_id: usize = y_pos as usize;
-
-        if board[y_id][x_id] > 0 {
-            alert();
-        } else {
-            let stone: usize = if is_black_turn { 2 } else { 1 };
-
-            if board == get_reversed_board(x_id, y_id, stone, board) {
-                alert();
-            } else {
-                board[y_id][x_id] = stone;
-                board = get_reversed_board(x_id, y_id, stone, board);
-                is_black_turn = !is_black_turn;
-            }
-        }
     }
 }
