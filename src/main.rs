@@ -38,8 +38,7 @@ fn glyphs(face: &mut ft::Face, text: &str) -> Vec<(Texture, [f64; 2])> {
 }
 
 fn render_text<G, T>(glyphs: &[(T, [f64; 2])], c: &Context, gl: &mut G)
-    where G: Graphics<Texture = T>, T: ImageSize
-{
+    where G: Graphics<Texture = T>, T: ImageSize {
     for &(ref texture, [x, y]) in glyphs {
         use graphics::*;
 
@@ -55,16 +54,15 @@ fn render_text<G, T>(glyphs: &[(T, [f64; 2])], c: &Context, gl: &mut G)
 const GRID_SIZE: f64 = 50.0;
 const WINDOW_WIDTH: f64 = 640.0;
 const WINDOW_HEIGHT: f64 = 640.0;
-// const TEXT_WHITE_Y: f64 = WINDOW_HEIGHT - (WINDOW_HEIGHT - GRID_SIZE * 8.0) / 4.0 - 10.0;
-// const TEXT_BLACK_Y: f64 = WINDOW_HEIGHT - (WINDOW_HEIGHT - GRID_SIZE * 8.0) / 4.0 + 10.0;
 const STONES_TEXT_Y: f64 = WINDOW_HEIGHT - (WINDOW_HEIGHT - GRID_SIZE * 8.0) / 4.0;
+const RESULT_TEXT_Y: f64 =(WINDOW_HEIGHT - GRID_SIZE * 8.0) / 4.0;
 
 pub struct App {
     gl: GlGraphics
 }
 
 impl App {
-    fn render(&mut self, args: &RenderArgs, _board: [[usize; 8]; 8], _positions_can_put: [[usize; 8]; 8]) {
+    fn render(&mut self, args: &RenderArgs, _board: [[usize; 8]; 8], _positions_can_put: [[usize; 8]; 8], _is_game_end: bool) {
         use graphics::*;
 
         const WHITE_SUB: [f32; 4] = [1.0, 1.0, 1.0, 0.1];
@@ -137,24 +135,29 @@ impl App {
             let stones_result = count_stones(_board);
             let white = stones_result[0];
             let black = stones_result[1];
-            let glyphs = glyphs(&mut face, &format!("WHITE: {}{}, BLACK: {}{} ",
-                if white < 10 { "0" } else { "" }, white,
-                if black < 10 { "0" } else { "" }, black
-            ));
-
-            render_text(&glyphs, &_c.trans(WINDOW_WIDTH / 2.0 - 150.0, STONES_TEXT_Y + 15.0), gl);
-
-            /*
-            {
-                let glyphs = glyphs(&mut face, &format!("WHITE: {} ", stones_result[0]));
-                render_text(&glyphs, &_c.trans(WINDOW_WIDTH / 2.0, TEXT_WHITE_Y), gl);
-            }
 
             {
-                let glyphs = glyphs(&mut face, &format!("BLACK: {} ", stones_result[1]));
-                render_text(&glyphs, &_c.trans(WINDOW_WIDTH / 2.0, TEXT_BLACK_Y), gl);
+                let glyphs = glyphs(&mut face, &format!("WHITE: {}{}, BLACK: {}{} ",
+                    if white < 10 { "0" } else { "" }, white,
+                    if black < 10 { "0" } else { "" }, black
+                ));
+
+                render_text(&glyphs, &_c.trans(WINDOW_WIDTH / 2.0 - 150.0, STONES_TEXT_Y + 15.0), gl);
             }
-            */
+
+
+            if _is_game_end {
+                let judge = get_judgement(stones_result);
+                let glyphs = glyphs(&mut face, &format!("{}! ", judge));
+
+                render_text(
+                    &glyphs,
+                    &_c.trans(
+                        WINDOW_WIDTH / 2.0 - if judge == "DRAW" { 55.0 } else { 100.0 },
+                        RESULT_TEXT_Y + 15.0
+                    ), gl
+                );
+            }
         });
     }
 }
@@ -170,7 +173,7 @@ fn count_stones(_board: [[usize; 8]; 8]) -> [usize; 2] {
         }
     }
 
-    return stones;
+    stones
 }
 
 fn get_reversed_board(_x: usize, _y: usize, _stone: usize, _board: [[usize; 8]; 8]) -> [[usize; 8]; 8] {
@@ -214,7 +217,7 @@ fn get_reversed_board(_x: usize, _y: usize, _stone: usize, _board: [[usize; 8]; 
         }
     }
 
-    return new_board;
+    new_board
 }
 
 fn get_positions_can_put(_stone: usize, _board: [[usize; 8]; 8]) -> [[usize; 8]; 8] {
@@ -226,13 +229,30 @@ fn get_positions_can_put(_stone: usize, _board: [[usize; 8]; 8]) -> [[usize; 8];
             }
         }
     }
-    return positions;
+
+    positions
+}
+
+fn get_judgement(_stones: [usize; 2]) -> String  {
+    let white = _stones[0];
+    let black = _stones[1];
+
+    (if white == black {
+        "DRAW"
+    } else {
+        if white > black {
+            "WHITE WON!"
+        } else {
+            "BLACK WON"
+        }
+    }).to_string()
 }
 
 fn main() {
     let mut skip_count = 0;
-    let mut id_x: usize = 0;
-    let mut id_y: usize = 0;
+    let mut id_x: f64 = 0.0;
+    let mut id_y: f64 = 0.0;
+    let mut is_game_end = false;
     let mut is_black_turn = true;
     let mut board: [[usize; 8]; 8] = [[0; 8]; 8];
     board[3][3] = 1;
@@ -242,7 +262,7 @@ fn main() {
 
     let opengl = OpenGL::V3_2;
     let mut window: Window = WindowSettings::new(
-            "Reversi v1.1",
+            "Reversi v1.2",
             [WINDOW_WIDTH, WINDOW_HEIGHT]
         )
         .graphics_api(opengl)
@@ -264,16 +284,19 @@ fn main() {
                 is_black_turn = !is_black_turn;
                 if skip_count == 1 {
                     skip_count = 2;
+                    is_game_end = true;
                     println!("\nFinished the game!");
 
                     let result = count_stones(board);
                     println!("{} - {}, {}!",
-                        result[0],
-                        result[1],
+                        result[0], result[1],
+                        get_judgement(result)
+                        /*
                         if result[0] == result[1] { "DRAW" } else {
                             if result[0] > result[1] { "WHITE WON!" }
                             else { "BLACK WON" }
                         }
+                        */
                     );
                 } else if skip_count == 0 {
                     skip_count = 1;
@@ -283,25 +306,26 @@ fn main() {
                 skip_count = 0;
             }
 
-            app.render(&r, board, positions_can_put);
+            app.render(&r, board, positions_can_put, is_game_end);
         }
 
         if let Some(Button::Mouse(button)) = e.press_args() {
             if button == piston::MouseButton::Left {
-                if id_x > 7 || id_y > 7 {
-                    continue;
-                }
+                if id_x < 0.0 || id_x > 8.0 || id_y < 0.0 || id_y > 8.0 { continue; }
 
-                if board[id_y][id_x] > 0 {
+                let u_id_x: usize = id_x as usize;
+                let u_id_y: usize = id_y as usize;
+
+                if board[u_id_y][u_id_x] > 0 {
                     println!("You can't put there.");
                 } else {
                     let stone: usize = if is_black_turn { 2 } else { 1 };
 
-                    if board == get_reversed_board(id_x, id_y, stone, board) {
+                    if board == get_reversed_board(u_id_x, u_id_y, stone, board) {
                         println!("You can't put there.");
                     } else {
-                        board[id_y][id_x] = stone;
-                        board = get_reversed_board(id_x, id_y, stone, board);
+                        board[u_id_y][u_id_x] = stone;
+                        board = get_reversed_board(u_id_x, u_id_y, stone, board);
                         is_black_turn = !is_black_turn;
                         println!("{:?}", count_stones(board));
                     }
@@ -314,8 +338,8 @@ fn main() {
             let left_x = WINDOW_WIDTH / 2.0 - GRID_SIZE * 4.0;
             let top_y = WINDOW_HEIGHT / 2.0 - GRID_SIZE * 4.0;
             let (normal_x, normal_y) = (pos[0] - left_x, pos[1] - top_y);
-            id_x = (normal_x / GRID_SIZE) as usize;
-            id_y = (normal_y / GRID_SIZE) as usize;
+            id_x = normal_x / GRID_SIZE;
+            id_y = normal_y / GRID_SIZE;
         });
     }
 }
