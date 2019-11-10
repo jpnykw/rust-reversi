@@ -15,7 +15,8 @@ use piston::input::*;
 use piston::window::WindowSettings;
 
 fn glyphs(
-    face: &mut ft::Face, text: &str
+    face: &mut ft::Face,
+    text: &str
 ) -> Vec<(Texture, [f64; 2])> {
     let mut x = 10;
     let mut y = 0;
@@ -45,7 +46,9 @@ fn glyphs(
 }
 
 fn render_text<G, T>(
-    glyphs: &[(T, [f64; 2])], c: &Context, gl: &mut G
+    glyphs: &[(T, [f64; 2])],
+    c: &Context,
+    gl: &mut G
 ) where
     G: Graphics<Texture = T>,
     T: ImageSize,
