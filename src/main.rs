@@ -14,7 +14,9 @@ use piston::event_loop::*;
 use piston::input::*;
 use piston::window::WindowSettings;
 
-fn glyphs(face: &mut ft::Face, text: &str) -> Vec<(Texture, [f64; 2])> {
+fn glyphs(
+    face: &mut ft::Face, text: &str
+) -> Vec<(Texture, [f64; 2])> {
     let mut x = 10;
     let mut y = 0;
     let mut res = vec![];
@@ -42,8 +44,9 @@ fn glyphs(face: &mut ft::Face, text: &str) -> Vec<(Texture, [f64; 2])> {
     res
 }
 
-fn render_text<G, T>(glyphs: &[(T, [f64; 2])], c: &Context, gl: &mut G)
-where
+fn render_text<G, T>(
+    glyphs: &[(T, [f64; 2])], c: &Context, gl: &mut G
+) where
     G: Graphics<Texture = T>,
     T: ImageSize,
 {
