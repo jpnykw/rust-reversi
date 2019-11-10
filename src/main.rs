@@ -2,6 +2,8 @@ extern crate piston;
 extern crate graphics;
 extern crate glutin_window;
 extern crate opengl_graphics;
+extern crate find_folder;
+extern crate freetype as ft;
 
 use std::f64;
 
@@ -9,11 +11,53 @@ use piston::window::WindowSettings;
 use piston::event_loop::*;
 use piston::input::*;
 use glutin_window::GlutinWindow as Window;
-use opengl_graphics::{ GlGraphics, OpenGL };
+use opengl_graphics::{ GlGraphics, OpenGL, Texture, TextureSettings };
+use graphics::{Context, Graphics, ImageSize};
+
+fn glyphs(face: &mut ft::Face, text: &str) -> Vec<(Texture, [f64; 2])> {
+    let mut x = 10;
+    let mut y = 0;
+    let mut res = vec![];
+    for ch in text.chars() {
+        face.load_char(ch as usize, ft::face::LoadFlag::RENDER).unwrap();
+        let g = face.glyph();
+
+        let bitmap = g.bitmap();
+        let texture = Texture::from_memory_alpha(
+            bitmap.buffer(),
+            bitmap.width() as u32,
+            bitmap.rows() as u32,
+            &TextureSettings::new()
+        ).unwrap();
+        res.push((texture, [(x + g.bitmap_left()) as f64, (y - g.bitmap_top()) as f64]));
+
+        x += (g.advance().x >> 6) as i32;
+        y += (g.advance().y >> 6) as i32;
+    }
+    res
+}
+
+fn render_text<G, T>(glyphs: &[(T, [f64; 2])], c: &Context, gl: &mut G)
+    where G: Graphics<Texture = T>, T: ImageSize
+{
+    for &(ref texture, [x, y]) in glyphs {
+        use graphics::*;
+
+        Image::new_color(color::BLACK).draw(
+            texture,
+            &c.draw_state,
+            c.transform.trans(x, y),
+            gl
+        );
+    }
+}
 
 const GRID_SIZE: f64 = 50.0;
 const WINDOW_WIDTH: f64 = 640.0;
 const WINDOW_HEIGHT: f64 = 640.0;
+// const TEXT_WHITE_Y: f64 = WINDOW_HEIGHT - (WINDOW_HEIGHT - GRID_SIZE * 8.0) / 4.0 - 10.0;
+// const TEXT_BLACK_Y: f64 = WINDOW_HEIGHT - (WINDOW_HEIGHT - GRID_SIZE * 8.0) / 4.0 + 10.0;
+const STONES_TEXT_Y: f64 = WINDOW_HEIGHT - (WINDOW_HEIGHT - GRID_SIZE * 8.0) / 4.0;
 
 pub struct App {
     gl: GlGraphics
@@ -48,7 +92,6 @@ impl App {
             let dx = [-GRID_SIZE, GRID_SIZE, GRID_SIZE, GRID_SIZE, GRID_SIZE, -GRID_SIZE, -GRID_SIZE, -GRID_SIZE];
             let dy = [GRID_SIZE, GRID_SIZE, GRID_SIZE, -GRID_SIZE, -GRID_SIZE, -GRID_SIZE, -GRID_SIZE, GRID_SIZE];
 
-            // BACKGROUND
             rectangle(GREEN, square, transform, gl);
 
             for _i in 0..7 {
@@ -65,7 +108,6 @@ impl App {
                 _y += GRID_SIZE;
             }
 
-            // STONES
             _y = GRID_SIZE * -4.0 + GRID_SIZE;
             for _i in 0..8 {
                 _x = GRID_SIZE * -4.0 + GRID_SIZE;
@@ -85,6 +127,34 @@ impl App {
                 }
                 _y += GRID_SIZE;
             }
+
+            let assets = find_folder::Search::ParentsThenKids(3, 3).for_folder("assets").unwrap();
+            let freetype = ft::Library::init().unwrap();
+            let font = assets.join("Geomanist-Regular.otf");
+            let mut face = freetype.new_face(&font, 0).unwrap();
+            face.set_pixel_sizes(0, 30).unwrap();
+
+            let stones_result = count_stones(_board);
+            let white = stones_result[0];
+            let black = stones_result[1];
+            let glyphs = glyphs(&mut face, &format!("WHITE: {}{}, BLACK: {}{} ",
+                if white < 10 { "0" } else { "" }, white,
+                if black < 10 { "0" } else { "" }, black
+            ));
+
+            render_text(&glyphs, &_c.trans(WINDOW_WIDTH / 2.0 - 150.0, STONES_TEXT_Y + 15.0), gl);
+
+            /*
+            {
+                let glyphs = glyphs(&mut face, &format!("WHITE: {} ", stones_result[0]));
+                render_text(&glyphs, &_c.trans(WINDOW_WIDTH / 2.0, TEXT_WHITE_Y), gl);
+            }
+
+            {
+                let glyphs = glyphs(&mut face, &format!("BLACK: {} ", stones_result[1]));
+                render_text(&glyphs, &_c.trans(WINDOW_WIDTH / 2.0, TEXT_BLACK_Y), gl);
+            }
+            */
         });
     }
 }
@@ -218,7 +288,7 @@ fn main() {
 
         if let Some(Button::Mouse(button)) = e.press_args() {
             if button == piston::MouseButton::Left {
-                if id_x < 0 || id_x > 7 || id_y < 0 || id_y > 7 {
+                if id_x > 7 || id_y > 7 {
                     continue;
                 }
 
