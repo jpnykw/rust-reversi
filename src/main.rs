@@ -14,6 +14,11 @@ use piston::event_loop::*;
 use piston::input::*;
 use piston::window::WindowSettings;
 
+mod assist;
+mod count;
+mod reverse;
+mod judgement;
+
 fn glyphs(
     face: &mut ft::Face,
     text: &str
@@ -168,7 +173,7 @@ impl App {
             let mut face = freetype.new_face(&font, 0).unwrap();
             face.set_pixel_sizes(0, 30).unwrap();
 
-            let stones_result = count_stones(_board);
+            let stones_result = count::run(_board);
             let white = stones_result[0];
             let black = stones_result[1];
 
@@ -192,7 +197,7 @@ impl App {
             }
 
             if _is_game_end {
-                let judge = get_judgement(stones_result);
+                let judge = judgement::run(stones_result);
                 let glyphs = glyphs(&mut face, &format!("{}! ", judge));
 
                 render_text(
@@ -208,122 +213,14 @@ impl App {
     }
 }
 
-fn count_stones(
-    _board: [[usize; 8]; 8]
-) -> [usize; 2] {
-    let mut stones: [usize; 2] = [0; 2];
-
-    for i in 0..8 {
-        for j in 0..8 {
-            if _board[i][j] > 0 {
-                stones[_board[i][j] - 1] += 1;
-            }
-        }
-    }
-
-    stones
-}
-
-fn get_reversed_board(
-    _x: usize,
-    _y: usize,
-    _stone: usize,
-    _board: [[usize; 8]; 8],
-) -> [[usize; 8]; 8] {
-    let opponent_stone = if _stone == 1 { 2 } else { 1 };
-    let dx: [i32; 8] = [0, -1, -1, -1, 0, 1, 1, 1];
-    let dy: [i32; 8] = [1, 1, 0, -1, -1, -1, 0, 1];
-    let mut new_board = _board;
-
-    for id in 0..8 {
-        let mut _x_pos = _x as i32 + dx[id];
-        let mut _y_pos = _y as i32 + dy[id];
-        if _x_pos < 0 || _x_pos > 7 || _y_pos < 0 || _y_pos > 7 {
-            continue;
-        }
-
-        if _board[_y_pos as usize][_x_pos as usize] == opponent_stone {
-            let mut flag = true;
-            let mut count_max = 0;
-
-            loop {
-                count_max += 1;
-                _x_pos += dx[id];
-                _y_pos += dy[id];
-
-                if _x_pos < 0
-                    || _x_pos > 7
-                    || _y_pos < 0
-                    || _y_pos > 7
-                    || _board[_y_pos as usize][_x_pos as usize] == 0
-                {
-                    flag = false;
-                    break;
-                } else if _board[_y_pos as usize][_x_pos as usize] == _stone {
-                    break;
-                }
-            }
-
-            if flag {
-                _x_pos = _x as i32;
-                _y_pos = _y as i32;
-
-                for _i in 0..count_max {
-                    _x_pos += dx[id];
-                    _y_pos += dy[id];
-                    new_board[_y_pos as usize][_x_pos as usize] = _stone;
-                }
-            }
-        }
-    }
-
-    new_board
-}
-
-fn get_positions_can_put(
-    _stone: usize,
-    _board: [[usize; 8]; 8]
-) -> [[usize; 8]; 8] {
-    let mut positions: [[usize; 8]; 8] = [[0; 8]; 8];
-    for y in 0..8 {
-        for x in 0..8 {
-            if _board[y][x] == 0 {
-                positions[y][x] = if _board == get_reversed_board(x, y, _stone, _board) {
-                    0
-                } else {
-                    1
-                };
-            }
-        }
-    }
-
-    positions
-}
-
-fn get_judgement(
-    _stones: [usize; 2]
-) -> String {
-    let white = _stones[0];
-    let black = _stones[1];
-
-    (if white == black {
-        "DRAW"
-    } else {
-        if white > black {
-            "WHITE WON!"
-        } else {
-            "BLACK WON"
-        }
-    })
-    .to_string()
-}
-
 fn main() {
+    let pvp = true;
     let mut skip_count = 0;
     let mut id_x: f64 = 0.0;
     let mut id_y: f64 = 0.0;
     let mut is_game_end = false;
     let mut is_black_turn = true;
+    let mut is_black_player = true;
     let mut board: [[usize; 8]; 8] = [[0; 8]; 8];
     board[3][3] = 1;
     board[3][4] = 2;
@@ -346,7 +243,7 @@ fn main() {
 
     while let Some(e) = events.next(&mut window) {
         if let Some(r) = e.render_args() {
-            let positions_can_put = get_positions_can_put(if is_black_turn { 2 } else { 1 }, board);
+            let positions_can_put = assist::run(if is_black_turn { 2 } else { 1 }, board);
             if positions_can_put == [[0; 8]; 8] {
                 is_black_turn = !is_black_turn;
                 if skip_count == 1 {
@@ -354,8 +251,8 @@ fn main() {
                     is_game_end = true;
                     println!("\nFinished the game!");
 
-                    let result = count_stones(board);
-                    println!("{} - {}, {}!", result[0], result[1], get_judgement(result));
+                    let result = count::run(board);
+                    println!("{} - {}, {}!", result[0], result[1], judgement::run(result));
                 } else if skip_count == 0 {
                     skip_count = 1;
                     println!("Skip {}!", if !is_black_turn { "BLACK" } else { "WHITE" });
@@ -364,14 +261,20 @@ fn main() {
                 skip_count = 0;
             }
 
+            if !pvp && ((is_black_player && !is_black_turn) || (!is_black_player && is_black_turn)) {
+                // TODO:Primitive Monte Carlo
+            }
+
             app.render(&r, board, positions_can_put, is_game_end);
         }
 
         if let Some(Button::Mouse(button)) = e.press_args() {
             if button == piston::MouseButton::Left {
-                if id_x < 0.0 || id_x > 8.0 || id_y < 0.0 || id_y > 8.0 {
-                    continue;
+                if id_x < 0.0 || id_x > 8.0 || id_y < 0.0 || id_y > 8.0 ||
+                    !pvp && ((is_black_player && !is_black_turn) || (!is_black_player && is_black_turn)) {
+                        continue;
                 }
+
                 let u_id_x: usize = id_x as usize;
                 let u_id_y: usize = id_y as usize;
 
@@ -380,13 +283,13 @@ fn main() {
                 } else {
                     let stone: usize = if is_black_turn { 2 } else { 1 };
 
-                    if board == get_reversed_board(u_id_x, u_id_y, stone, board) {
+                    if board == reverse::run(u_id_x, u_id_y, stone, board) {
                         println!("You can't put there.");
                     } else {
                         board[u_id_y][u_id_x] = stone;
-                        board = get_reversed_board(u_id_x, u_id_y, stone, board);
+                        board = reverse::run(u_id_x, u_id_y, stone, board);
                         is_black_turn = !is_black_turn;
-                        println!("{:?}", count_stones(board));
+                        println!("{:?}", count::run(board));
                     }
                 }
             }

@@ -1,5 +1,8 @@
 # Reversi on Rust
 
+Stable version is available here [![Version](https://img.shields.io/badge/version-1.2-blue.svg)](https://github.com/JPNYKW/Rust-Reversi/releases/tag/v1.2)  
+Master branch has a beta.  
+
 ## Install
 ```bash
 $ git clone https://github.com/JPNYKW/Rust-Reversi && cd Rust-Reversi
