@@ -80,7 +80,7 @@ impl App {
         &mut self,
         args: &RenderArgs,
         _board: [[usize; 8]; 8],
-        _positions_can_put: [[usize; 8]; 8],
+        _positions_can_put: Vec<[usize; 2]>,
         _is_game_end: bool,
     ) {
         use graphics::*;
@@ -139,15 +139,13 @@ impl App {
             for _i in 0..8 {
                 _x = GRID_SIZE * -4.0 + GRID_SIZE;
                 for _j in 0..8 {
-                    if _board[_i][_j] > 0 || _positions_can_put[_i][_j] == 1 {
+                    if _board[_i][_j] > 0 {
                         let trans = _c
                             .transform
                             .trans(_x + GRID_SIZE * 6.0 - 15.0, _y + GRID_SIZE * 6.0 - 15.0);
 
                         circle_arc(
-                            if _positions_can_put[_i][_j] == 1 {
-                                WHITE_SUB
-                            } else if _board[_i][_j] == 1 {
+                            if _board[_i][_j] == 1 {
                                 WHITE
                             } else {
                                 BLACK
@@ -163,6 +161,25 @@ impl App {
                     _x += GRID_SIZE;
                 }
                 _y += GRID_SIZE;
+            }
+
+            for pos in &_positions_can_put {
+                _x = (GRID_SIZE * -4.0 + GRID_SIZE) + GRID_SIZE * pos[0] as f64;
+                _y = (GRID_SIZE * -4.0 + GRID_SIZE) + GRID_SIZE * pos[1] as f64;
+
+                let trans = _c
+                    .transform
+                    .trans(_x + GRID_SIZE * 6.0 - 15.0, _y + GRID_SIZE * 6.0 - 15.0);
+
+                circle_arc(
+                    WHITE_SUB,
+                    10.0,
+                    0.0,
+                    f64::consts::PI * 1.9999,
+                    stone,
+                    trans,
+                    gl,
+                );
             }
 
             let assets = find_folder::Search::ParentsThenKids(3, 3)
@@ -244,7 +261,7 @@ fn main() {
     while let Some(e) = events.next(&mut window) {
         if let Some(r) = e.render_args() {
             let positions_can_put = assist::run(if is_black_turn { 2 } else { 1 }, board);
-            if positions_can_put == [[0; 8]; 8] {
+            if positions_can_put.len() < 1 {
                 is_black_turn = !is_black_turn;
                 if skip_count == 1 {
                     skip_count = 2;
