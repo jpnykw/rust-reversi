@@ -1,3 +1,4 @@
+use super::evaluation;
 use super::reverse;
 use super::assist;
 use super::count;
@@ -25,41 +26,46 @@ pub fn run (
             _stone, _board
         );
 
+        _board[pos[1]][pos[0]] = _stone;
+
         let mut counter: i16 = 0;
 
-        println!("原点: {:?}", pos);
+        println!("Origin: {:?}", pos);
 
         loop {
+            println!("      > Update: {:?}\n", _board);
+
             counter += 1;
             if counter == std::i16::MAX {
-                panic!("> 設置場所が見つかりませんでした");
+                panic!("Couldn't find the positions can put");
             }
 
             _stone = if _stone == 1 { 2 } else { 1 };
             let way = assist::run(_stone, _board);
-            println!("  > 設置可能場所候補: {:?}", way);
+            println!("  > Positions Stack: {:?}", way);
 
-            if way.len() < 1 {
+            if way.len() == 0 {
                 if flag {
-                    println!("  > 終了");
+                    println!("  > End Turn");
                     break;
                 } else {
+                    println!("  > Skip Turn");
                     flag = true;
-                    println!("  > スキップ");
                 }
-
-                continue;
             } else {
                 flag = false;
-                let rnd: f32 = rng.gen();
-                let index = (rnd * way.len() as f32) as usize;
+                // let rnd: f32 = rng.gen();
+                // let index = (rnd * (way.len() - 1) as f32) as usize;
+                // println!("      > Put: {:?}", way[index]);
 
-                println!("      > 設置: {:?}", way[index]);
-                // println!(" > index: {}", index);
+                let _pos = evaluation::run(_stone, _board);
+                let _x = _pos[0];
+                let _y = _pos[1];
 
+                _board[_y][_x] = _stone;
                 _board = reverse::run(
-                    way[index][0],
-                    way[index][1],
+                    _x,
+                    _y,
                     _stone, _board
                 );
             }

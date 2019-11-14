@@ -333,17 +333,17 @@ fn main() {
         {
             let stone = if is_black_turn { 2 } else { 1 };
 
-            let pos = if false {
-                montecarlo::run(
-                    if is_black_turn { 2 }
-                    else { 1 },
-                    board
-                )
+            let positions = assist::run(stone, board);
+            if positions.len() == 0 {
+                continue;
+            }
+
+            // let pos = evaluation::run(stone, board);
+
+            let pos = if positions.len() < 4 {
+                montecarlo::run(stone, board)
             } else {
-                evaluation::run(
-                    if is_black_turn { 2 } else { 1 },
-                    board
-                )
+                evaluation::run(stone, board)
             };
 
             board[pos[1]][pos[0]] = stone;
