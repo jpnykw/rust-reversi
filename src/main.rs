@@ -312,7 +312,7 @@ fn main() {
                         board[u_id_y][u_id_x] = stone;
                         board = reverse::run(u_id_x, u_id_y, stone, board);
                         is_black_turn = !is_black_turn;
-                        println!("{:?}", count::run(board));
+                        // println!("{:?}", count::run(board));
                         timestamp = Instant::now();
                     }
                 }
@@ -338,9 +338,7 @@ fn main() {
                 continue;
             }
 
-            // let pos = evaluation::run(stone, board);
-
-            let pos = if positions.len() < 4 {
+            let pos = if positions.len() < 1 {
                 montecarlo::run(stone, board)
             } else {
                 evaluation::run(stone, board)
