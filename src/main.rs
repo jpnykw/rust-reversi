@@ -13,11 +13,22 @@ use opengl_graphics::{GlGraphics, OpenGL, Texture, TextureSettings};
 use piston::event_loop::*;
 use piston::input::*;
 use piston::window::WindowSettings;
+use std::time::{Instant};
 
 mod assist;
 mod count;
 mod reverse;
 mod judgement;
+
+// CPU system
+mod evaluation;
+mod montecarlo;
+
+const GRID_SIZE: f64 = 50.0;
+const WINDOW_WIDTH: f64 = 640.0;
+const WINDOW_HEIGHT: f64 = 640.0;
+const RESULT_TEXT_Y: f64 = (WINDOW_HEIGHT - GRID_SIZE * 8.0) / 4.0;
+const STONES_TEXT_Y: f64 = WINDOW_HEIGHT - (WINDOW_HEIGHT - GRID_SIZE * 8.0) / 4.0;
 
 fn glyphs(
     face: &mut ft::Face,
@@ -64,12 +75,6 @@ fn render_text<G, T>(
         Image::new_color(color::BLACK).draw(texture, &c.draw_state, c.transform.trans(x, y), gl);
     }
 }
-
-const GRID_SIZE: f64 = 50.0;
-const WINDOW_WIDTH: f64 = 640.0;
-const WINDOW_HEIGHT: f64 = 640.0;
-const RESULT_TEXT_Y: f64 = (WINDOW_HEIGHT - GRID_SIZE * 8.0) / 4.0;
-const STONES_TEXT_Y: f64 = WINDOW_HEIGHT - (WINDOW_HEIGHT - GRID_SIZE * 8.0) / 4.0;
 
 pub struct App {
     gl: GlGraphics,
@@ -231,18 +236,23 @@ impl App {
 }
 
 fn main() {
-    let pvp = true;
+    let pvp = false;
+    let is_black_player = true;
+
     let mut skip_count = 0;
     let mut id_x: f64 = 0.0;
     let mut id_y: f64 = 0.0;
+
     let mut is_game_end = false;
     let mut is_black_turn = true;
-    let mut is_black_player = true;
+
     let mut board: [[usize; 8]; 8] = [[0; 8]; 8];
     board[3][3] = 1;
     board[3][4] = 2;
     board[4][3] = 2;
     board[4][4] = 1;
+
+    let mut timestamp = Instant::now();
 
     let opengl = OpenGL::V3_2;
     let mut window: Window = WindowSettings::new("Reversi v1.2", [WINDOW_WIDTH, WINDOW_HEIGHT])
@@ -278,10 +288,6 @@ fn main() {
                 skip_count = 0;
             }
 
-            if !pvp && ((is_black_player && !is_black_turn) || (!is_black_player && is_black_turn)) {
-                // TODO:Primitive Monte Carlo
-            }
-
             app.render(&r, board, positions_can_put, is_game_end);
         }
 
@@ -307,6 +313,7 @@ fn main() {
                         board = reverse::run(u_id_x, u_id_y, stone, board);
                         is_black_turn = !is_black_turn;
                         println!("{:?}", count::run(board));
+                        timestamp = Instant::now();
                     }
                 }
             }
@@ -320,5 +327,28 @@ fn main() {
             id_x = normal_x / GRID_SIZE;
             id_y = normal_y / GRID_SIZE;
         });
+
+        if  !pvp && (Instant::now() - timestamp).as_millis() > 300 &&
+            ((is_black_player && !is_black_turn) || (!is_black_player && is_black_turn))
+        {
+            let stone = if is_black_turn { 2 } else { 1 };
+
+            let pos = if false {
+                montecarlo::run(
+                    if is_black_turn { 2 }
+                    else { 1 },
+                    board
+                )
+            } else {
+                evaluation::run(
+                    if is_black_turn { 2 } else { 1 },
+                    board
+                )
+            };
+
+            board[pos[1]][pos[0]] = stone;
+            board = reverse::run(pos[0], pos[1], stone, board);
+            is_black_turn = !is_black_turn;
+        }
     }
 }
