@@ -1,6 +1,6 @@
-[![Version](https://img.shields.io/badge/version-1.2-green.svg)](https://github.com/JPNYKW/Rust-Reversi/releases/tag/v1.2)  
-[![Version](https://img.shields.io/badge/version-1.1-blue.svg)](https://github.com/JPNYKW/Rust-Reversi/releases/tag/v1.1)  
-[![Version](https://img.shields.io/badge/version-1.0-blue.svg)](https://github.com/JPNYKW/Rust-Reversi/releases/tag/v1.0)  
+[![Version](https://img.shields.io/badge/version-1.2-green.svg)](https://github.com/JPNYKW/Rust-Reversi/releases/tag/v1.2)
+[![Version](https://img.shields.io/badge/version-1.1-blue.svg)](https://github.com/JPNYKW/Rust-Reversi/releases/tag/v1.1)
+[![Version](https://img.shields.io/badge/version-1.0-blue.svg)](https://github.com/JPNYKW/Rust-Reversi/releases/tag/v1.0)
 
 # Reversi on Rust
 
