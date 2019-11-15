@@ -272,7 +272,7 @@ fn main() {
     let mut timestamp = Instant::now();
 
     let opengl = OpenGL::V3_2;
-    let mut window: Window = WindowSettings::new("Reversi v1.2", [WINDOW_WIDTH, WINDOW_HEIGHT])
+    let mut window: Window = WindowSettings::new("Reversi v1.3", [WINDOW_WIDTH, WINDOW_HEIGHT])
         .graphics_api(opengl)
         .exit_on_esc(true)
         .build()
