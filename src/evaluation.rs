@@ -44,6 +44,8 @@ pub fn run (
             max_eval = new_eval;
             result[0] = position[0];
             result[1] = position[1];
+            println!("  - Pos: {:?}", result);
+            println!("      - Score: {}", new_eval);
         }
     }
 

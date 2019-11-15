@@ -15,8 +15,8 @@ use piston::input::*;
 use piston::window::WindowSettings;
 use std::time::{Instant};
 
-mod assist;
 mod count;
+mod assist;
 mod reverse;
 mod judgement;
 
@@ -86,6 +86,7 @@ impl App {
         args: &RenderArgs,
         _board: [[usize; 8]; 8],
         _positions_can_put: Vec<[usize; 2]>,
+        _is_black_turn: bool,
         _is_game_end: bool,
     ) {
         use graphics::*;
@@ -218,19 +219,35 @@ impl App {
                 );
             }
 
-            if _is_game_end {
-                let judge = judgement::run(stones_result);
-                let glyphs = glyphs(&mut face, &format!("{}! ", judge));
+            let text = if _is_game_end {
+                judgement::run(stones_result) + "!"
+            } else {
+                String::from(
+                    format!(
+                        "TURN: {}",
+                        if _is_black_turn {
+                            "BLACK"
+                        } else {
+                            "WHITE"
+                        }
+                    )
+                )
+            };
 
-                render_text(
-                    &glyphs,
-                    &_c.trans(
-                        WINDOW_WIDTH / 2.0 - if judge == "DRAW" { 55.0 } else { 100.0 },
-                        RESULT_TEXT_Y + 15.0,
-                    ),
-                    gl,
-                );
-            }
+            let glyphs = glyphs(&mut face, &format!("{} ", text));
+
+            render_text(
+                &glyphs,
+                &_c.trans(
+                    WINDOW_WIDTH / 2.0 - if text == "DRAW" {
+                        55.0
+                    } else {
+                        100.0
+                    },
+                    RESULT_TEXT_Y + 15.0,
+                ),
+                gl,
+            );
         });
     }
 }
@@ -288,7 +305,10 @@ fn main() {
                 skip_count = 0;
             }
 
-            app.render(&r, board, positions_can_put, is_game_end);
+            app.render(
+                &r, board, positions_can_put,
+                is_black_turn, is_game_end
+            );
         }
 
         if let Some(Button::Mouse(button)) = e.press_args() {
@@ -329,7 +349,8 @@ fn main() {
         });
 
         if  !pvp && (Instant::now() - timestamp).as_millis() > 300 &&
-            ((is_black_player && !is_black_turn) || (!is_black_player && is_black_turn))
+            ((is_black_player && !is_black_turn) ||
+            (!is_black_player && is_black_turn))
         {
             let stone = if is_black_turn { 2 } else { 1 };
 
@@ -338,14 +359,18 @@ fn main() {
                 continue;
             }
 
-            let pos = if positions.len() < 1 {
-                montecarlo::run(stone, board)
+            let pos = if positions.len() < 11 {
+                println!("\nSwitch: Monte Carlo\n--------------->");
+                montecarlo::run(200, stone, board)
             } else {
+                println!("\nSwitch: Evaluation\n--------------->");
                 evaluation::run(stone, board)
             };
 
-            board[pos[1]][pos[0]] = stone;
+            println!("<---------------");
+
             board = reverse::run(pos[0], pos[1], stone, board);
+            board[pos[1]][pos[0]] = stone;
             is_black_turn = !is_black_turn;
         }
     }
