@@ -5,7 +5,7 @@
 
 # Reversi on Rust
 
-Stable version is available [here](https://github.com/JPNYKW/Rust-Reversi/releases/tag/v1.2).  
+Stable version is available [here](https://github.com/JPNYKW/Rust-Reversi/releases/tag/v1.3).  
 Master branch has a beta.  
 
 ## Install
