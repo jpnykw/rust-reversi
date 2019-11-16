@@ -357,7 +357,7 @@ fn main() {
                 continue;
             }
 
-            let pos = if positions.len() < 11 {
+            let pos = if positions.len() < 7 {
                 println!("\nSwitch: Monte Carlo\n--------------->");
                 montecarlo::run(200, stone, board)
             } else {
