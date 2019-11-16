@@ -4,7 +4,7 @@ pub fn run (
     let white = _stones[0];
     let black = _stones[1];
 
-    (if white == black {
+    String::from(if white == black {
         "DRAW"
     } else {
         if white > black {
@@ -13,6 +13,5 @@ pub fn run (
             "BLACK WON"
         }
     })
-    .to_string()
 }
 
